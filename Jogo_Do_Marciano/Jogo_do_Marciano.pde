@@ -1,23 +1,26 @@
 import java.util.ArrayList;
 import java.util.Collections;
 
+// ================== VARIÁVEIS GLOBAIS ==================
+String nomeJogador = ""; // Nome do jogador
+boolean esperandoNome = true; // Se true, aguarda o jogador digitar o nome
 
-String nomeJogador = "";
-boolean esperandoNome = true;
-int estado = 0; // 0 = Menu, 1 = Jogo, 2 = Como Jogar, 3 = Sair
-int indiceHistoria = 0;
-String[] historia; // Array será gerado depois
+int estado = 0; // Controla a tela atual do jogo: 0 = Menu, 1 = Jogo, 2 = Como Jogar, 3 = Sair
+int indiceHistoria = 0; // Índice da história para exibição
+String[] historia; // Array que contém os textos da história
 
-int posicaoMarciano;  // Número onde o Marciano está escondido
-int tentativasRestantes = 10;  // Número de tentativas disponíveis
-boolean jogoAtivo = true;  // Controla se o jogo está ativo
-String tentativaTexto = "";  // Armazena a tentativa do jogador antes de apertar ENTER
-String mensagem = "";
-boolean fimDeJogo = false;
+int posicaoMarciano;  // Número da árvore onde o Marciano está escondido
+int tentativasRestantes = 10;  // Tentativas disponíveis antes do Marciano mudar de posição
+boolean jogoAtivo = true;  // Indica se o jogo está em andamento
 
-int tempoInicio;
-int tempoSaida = 0;
+String tentativaTexto = "";  // Entrada do jogador antes de confirmar com ENTER
+String mensagem = ""; // Mensagem exibida na interface do jogo
+boolean fimDeJogo = false; // Indica se o jogo terminou (venceu ou perdeu)
 
+int tempoInicio; // Registra o tempo de início do jogo para cálculo de recordes
+int tempoSaida = 0; // Registra o tempo de saída para criar um efeito de despedida antes de fechar o jogo
+
+// ================== CONFIGURAÇÃO INICIAL ==================
 void setup() {
   size(500, 500);
   background(0);
@@ -45,6 +48,7 @@ void draw() {
   text(mensagem, width / 2, height - 40);
 }
 
+// ================== CLASSE DE RECORDES ==================
 class Recorde {
   String nome;
   int tempo;
@@ -57,7 +61,7 @@ class Recorde {
 
 ArrayList<Recorde> recordes = new ArrayList<Recorde>();
 
-
+// ================== MENU INICIAL ==================
 void menuInicial() {
   
   mensagem = ""; // Limpa qualquer mensagem anterior ao exibir o menu
@@ -74,6 +78,7 @@ void menuInicial() {
   text("SAIR", width / 2, height / 2 + 30);
 }
 
+// ----- CONTROLE DO MOUSE -----
 void mousePressed() {
   if (estado == 0) { // Se estiver no menu inicial
     float centroX = width / 2;
@@ -98,6 +103,7 @@ void mousePressed() {
   }
 }
 
+// ----- EXIBIR HISTÓRIA -----
 void contarHistoria() {
   background(0);
   fill(255);
@@ -105,14 +111,17 @@ void contarHistoria() {
   textAlign(CENTER, CENTER);
   
   float larguraTexto = 400; // Define a largura máxima do texto
-  float alturaTexto = 200;  // Altura máxima do bloco de texto
+  float alturaTexto = 200;  // Define a altura máxima do bloco de texto
   
-  // Exibe o texto com quebra automática dentro da área definida
+  // Exibe a parte da história atual, garantindo que o texto quebre corretamente
   text(historia[indiceHistoria], width / 2 - larguraTexto / 2, height / 2 - 50, larguraTexto, alturaTexto);
 
+  // Mensagem para o jogador saber como avançar
   textSize(16);
   text("Pressione ENTER ou clique para continuar...", width / 2, height - 50);
 }
+
+// ----- HISTÓRIA E JOGO -----
 void gerarHistoria() {
   historia = new String[] {
     "Bem-vindo, " + nomeJogador + "!",
@@ -125,103 +134,54 @@ void gerarHistoria() {
   };
 }
 
-void keyPressed() {
-  if (fimDeJogo) { 
-    if (key == ENTER) {
-      estado = 0;  // Voltar ao menu
-      fimDeJogo = false; // Resetar o estado de fim de jogo
-      mensagem = ""; // Limpar mensagem ao voltar ao menu
-      
-      // Resetar nome para permitir novo jogador
-        nomeJogador = ""; 
-        esperandoNome = true;
-        
-      // **Resetar o índice da história**
-      indiceHistoria = 0;
-    }
-    return; // Impede que o resto do código continue
-  }
-
-  if (estado == 1) {
-    if (esperandoNome) {
-      if (key == BACKSPACE && nomeJogador.length() > 0) {
-        nomeJogador = nomeJogador.substring(0, nomeJogador.length() - 1);
-      } else if (key == ENTER && nomeJogador.length() > 0) {
-        esperandoNome = false;
-        gerarHistoria();
-      } else if (key != BACKSPACE && key != ENTER && nomeJogador.length() < 10) {
-        nomeJogador += key;
-      }
-    } else if (key == ENTER) {
-      if (indiceHistoria < historia.length - 1) {
-        indiceHistoria++;
-      } else {
-        iniciarJogo();
-      }
-    }
-  }
-
-  // **Mover a verificação do estado 2 para fora do bloco anterior**
-  if (estado == 2 && key == ENTER) { 
-    estado = 0; // Volta para o menu principal
-  }
-
-  if (estado == 3 && jogoAtivo) {
-    if (key >= '0' && key <= '9') { 
-      if (tentativaTexto.length() < 3) {
-        tentativaTexto += key;
-      }
-    } 
-    else if (key == BACKSPACE && tentativaTexto.length() > 0) {
-      tentativaTexto = tentativaTexto.substring(0, tentativaTexto.length() - 1);
-    } 
-    else if (key == ENTER && tentativaTexto.length() > 0) {
-      int tentativa = int(tentativaTexto);
-      verificarTentativa(tentativa); 
-      tentativaTexto = "";
-    }
-  }
-}
-
-
-
+// ----- SOLICITAR NOME DO JOGADOR -----
 void pedirNome() {
   background(0);
   fill(255);
   textSize(24);
   textAlign(CENTER, CENTER);
+  
+  // Exibir a mensagem para o jogador digitar o nome
   text("Digite seu nome:", width / 2, height / 3);
+  
   textSize(20);
+  // Exibir o nome digitado até o momento, com um "_" no final para indicar que está aguardando entrada
   text(nomeJogador + "_", width / 2, height / 2);
 }
 
+
+// ----- GERENCIAR INÍCIO DO JOGO -----
 void jogo() {
   if (esperandoNome) {
+    // Exibe a tela para o jogador digitar seu nome
     pedirNome();
   } else {
+    // Inicia a história do jogo
     contarHistoria();
   }
 }
 
+// ----- INICIAR UMA NOVA PARTIDA -----
 void iniciarJogo() {
-  estado = 3;  // Estado de jogo ativo
-  posicaoMarciano = int(random(1, 101)); // Gera número entre 1 e 100
-  tentativasRestantes = 10; // Reinicia as tentativas
-  jogoAtivo = true;
+  estado = 3;  // Define o estado do jogo ativo
+  posicaoMarciano = int(random(1, 101)); // Gera um número aleatório entre 1 e 100
+  tentativasRestantes = 10; // Reinicia o número de tentativas
+  jogoAtivo = true; // Ativa o jogo
   mensagem = "O jogo começou! O Marciano está escondido. Adivinhe de 1 a 100.";
-  tempoInicio = millis(); // Registra o tempo de início do jogo
-
+  tempoInicio = millis(); // Registra o tempo inicial da partida
 }
 
+// ----- VERIFICAR TENTATIVA DO JOGADOR -----
 void verificarTentativa(int tentativa) {
     if (tentativa == posicaoMarciano) {
+        // Calcula o tempo total gasto na partida
         int tempoFinal = millis();
         int tempoTotal = (tempoFinal - tempoInicio) / 1000;
-
+        
         String mensagemRecorde = "";
 
         if (!recordes.isEmpty()) {
-            // Obtemos o melhor tempo atual e quem o detém
+            // Obtém o melhor tempo atual
             Recorde melhorRecorde = recordes.get(0);
             for (Recorde r : recordes) {
                 if (r.tempo < melhorRecorde.tempo) {
@@ -229,7 +189,7 @@ void verificarTentativa(int tentativa) {
                 }
             }
 
-            // Se o novo tempo for menor, significa que temos um novo recorde!
+            // Se o novo tempo for menor, temos um novo recorde!
             if (tempoTotal < melhorRecorde.tempo) {
                 mensagemRecorde = "Novo recorde! Você ultrapassou " + melhorRecorde.nome + "!";
             }
@@ -237,21 +197,27 @@ void verificarTentativa(int tentativa) {
             mensagemRecorde = "Primeiro recorde registrado!";
         }
 
+        // Mensagem de vitória
         mensagem = "Parabéns, " + nomeJogador + "! Você encontrou o Marciano! 🎉\n" + mensagemRecorde;
+        
+        // Finaliza o jogo
         jogoAtivo = false;
         fimDeJogo = true;
 
-        // Adiciona o novo recorde
+        // Adiciona o novo recorde à lista
         recordes.add(new Recorde(nomeJogador, tempoTotal));
     } else {
+        // Diminui tentativas restantes
         tentativasRestantes--;
 
+        // Dica se a posição é maior ou menor
         if (tentativa < posicaoMarciano) {
             mensagem = "O Marciano está em uma árvore MAIOR!";
         } else {
             mensagem = "O Marciano está em uma árvore MENOR!";
         }
 
+        // Se acabar as tentativas, o Marciano muda de posição
         if (tentativasRestantes == 0) {
             mensagem = "Você perdeu! O Marciano mudou de lugar... 😢";
             posicaoMarciano = int(random(1, 101)); 
@@ -260,8 +226,7 @@ void verificarTentativa(int tentativa) {
     }
 }
 
-
-
+// ----- INTERFACE DA PARTIDA -----
 void iniciarPartida() {
   background(0);
   fill(255);
@@ -269,14 +234,17 @@ void iniciarPartida() {
   textAlign(CENTER, CENTER);
 
   if (jogoAtivo) {
+    // Exibe informações do jogo enquanto ele está em andamento
     text("Tente encontrar o Marciano!", width / 2, height / 4);
     text("Digite um número entre 1 e 100", width / 2, height / 3);
     text("Tentativas restantes: " + tentativasRestantes, width / 2, height / 2);
     text("Seu palpite: " + tentativaTexto + "_", width / 2, height / 2 + 50);
   } else {
+    // Se o jogo terminou, exibe a mensagem de fim
     textSize(20);
     String mensagemFim = "Fim de Jogo! Pressione ENTER para voltar ao menu.";
 
+    // Se a mensagem for longa, divide em duas linhas para melhor exibição
     if (mensagemFim.length() > 40) {
       String parte1 = mensagemFim.substring(0, 40);
       String parte2 = mensagemFim.substring(40);
@@ -287,21 +255,20 @@ void iniciarPartida() {
     }
   }
 
-  // **Exibir a mensagem dinâmica na parte inferior da tela**
+  // **Exibir a mensagem dinâmica do jogo na parte inferior da tela**
   textSize(18);
   text(mensagem, width / 2, height - 40);  // Ajustado para evitar que saia da tela
 }
 
 
-
-
+// ----- TABELA DE RECORDES -----
 void tabelaDeRecordes() {
-  background(0, 0, 150);
+  background(0, 0, 150); // Define a cor do fundo
   fill(255);
   textSize(32);
   textAlign(CENTER, CENTER);
-  text("🏆 Tabela de Recordes 🏆", width / 2, 50);
-  
+  text("Tabela de Recordes", width / 2, 50); 
+
   // Ordenar a lista de recordes (menor tempo primeiro)
   Collections.sort(recordes, (a, b) -> a.tempo - b.tempo);
 
@@ -312,27 +279,102 @@ void tabelaDeRecordes() {
   for (int i = 0; i < min(5, recordes.size()); i++) {
     Recorde r = recordes.get(i);
     text((i + 1) + ". " + r.nome + " - " + r.tempo + "s", width / 2, y);
-    y += 30;
+    y += 30; // Ajusta a posição para a próxima linha
   }
 
+  // Exibir a mensagem para retornar ao menu
   textSize(16);
   text("Pressione ENTER para voltar ao menu", width / 2, height - 50);
 }
 
-
+// ----- SAIR DO JOGO -----
 void sair() {
+  // Define o tempo de saída na primeira execução
   if (tempoSaida == 0) {
     tempoSaida = millis(); // Guarda o tempo atual quando a função for chamada
   }
 
+  // Exibir tela de despedida
   background(0);
   fill(255);
   textSize(32);
   textAlign(CENTER, CENTER);
   text("Até um outro Dia!", width / 2, height / 3);
 
-  // Verifica se já passaram 2 segundos antes de fechar o jogo
+  // Aguarda 2 segundos antes de fechar o jogo
   if (millis() - tempoSaida > 2000) {
-    exit();
+    exit(); // Fecha o programa
+  }
+}
+
+// ----- CAPTURA DE TECLAS -----
+void keyPressed() {
+  // Se o jogo terminou e ENTER for pressionado, volta ao menu principal
+  if (fimDeJogo) { 
+    if (key == ENTER) {
+      estado = 0;  // Retorna ao menu inicial
+      fimDeJogo = false; // Reseta o estado de fim de jogo
+      mensagem = ""; // Limpa a mensagem ao voltar ao menu
+      
+      // Resetar nome para permitir um novo jogador
+      nomeJogador = ""; 
+      esperandoNome = true;
+        
+      // Resetar o índice da história
+      indiceHistoria = 0;
+    }
+    return; // Impede que o resto do código continue
+  }
+
+  // Entrada do nome e exibição da história
+  if (estado == 1) {
+    if (esperandoNome) {
+      // Se BACKSPACE for pressionado, apaga o último caractere do nome
+      if (key == BACKSPACE && nomeJogador.length() > 0) {
+        nomeJogador = nomeJogador.substring(0, nomeJogador.length() - 1);
+      } 
+      // Se ENTER for pressionado e o nome não estiver vazio, inicia a história
+      else if (key == ENTER && nomeJogador.length() > 0) {
+        esperandoNome = false;
+        gerarHistoria();
+      } 
+      // Adiciona letras ao nome (limite de 10 caracteres)
+      else if (key != BACKSPACE && key != ENTER && nomeJogador.length() < 10) {
+        nomeJogador += key;
+      }
+    } 
+    // Avança na história com ENTER
+    else if (key == ENTER) {
+      if (indiceHistoria < historia.length - 1) {
+        indiceHistoria++;
+      } else {
+        iniciarJogo(); // Inicia o jogo ao final da história
+      }
+    }
+  }
+
+  // Retornar ao menu principal a partir da tabela de recordes
+  if (estado == 2 && key == ENTER) { 
+    estado = 0; // Volta para o menu principal
+  }
+
+  // Entrada de números durante o jogo ativo
+  if (estado == 3 && jogoAtivo) {
+    if (key >= '0' && key <= '9') { 
+      // Permite digitar até 3 números
+      if (tentativaTexto.length() < 3) {
+        tentativaTexto += key;
+      }
+    } 
+    // Permite apagar números digitados
+    else if (key == BACKSPACE && tentativaTexto.length() > 0) {
+      tentativaTexto = tentativaTexto.substring(0, tentativaTexto.length() - 1);
+    } 
+    // Se ENTER for pressionado e houver uma tentativa válida
+    else if (key == ENTER && tentativaTexto.length() > 0) {
+      int tentativa = int(tentativaTexto);
+      verificarTentativa(tentativa); // Verifica a tentativa
+      tentativaTexto = ""; // Reseta o campo de entrada
+    }
   }
 }
